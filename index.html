@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>中華基督教會基真小學 - 動植物分類大挑戰</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #dcfce7);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            padding: 15px;
+        }
+        /* 頂部資訊列 */
+        .header {
+            width: 100%;
+            max-width: 1024px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 24px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .stat-box {
+            padding: 5px 15px;
+            border-radius: 8px;
+            color: white;
+        }
+        #timer-box { background-color: #ef4444; } 
+        #score-box { background-color: #10b981; }
+
+        /* 主要遊戲區域 */
+        .game-container {
+            width: 100%;
+            max-width: 1024px;
+            flex: 1;
+            display: grid;
+            grid-template-columns: 180px 1fr 180px;
+            gap: 20px;
+            align-items: center;
+        }
+
+        /* 分類籃子區域 */
+        .zone-column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+        }
+        .zone-title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 6px;
+            border-radius: 6px;
+            color: white;
+        }
+        .animal-title { background-color: #2563eb; }
+        .plant-title { background-color: #16a34a; }
+
+        /* 分類空格：大小與圖片相約 */
+        .basket {
+            background: white;
+            border: 3px dashed #cbd5e1;
+            border-radius: 12px;
+            width: 160px;
+            height: 105px;
+            margin: 0 auto;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #334155;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+        }
+        .basket.drag-over {
+            background: #fef08a;
+            border-color: #eab308;
+            transform: scale(1.05);
+        }
+
+        /* 中央考卷卡片區 */
+        .center-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            height: 100%;
+        }
+        .card-container {
+            width: 180px;
+            height: 220px;
+            position: relative;
+            perspective: 1000px;
+        }
+        /* 出題卡片：大小與分類空格相約 */
+        .card {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 10px;
+            cursor: grab;
+            position: absolute;
+            touch-action: none;
+            border: 2px solid #e2e8f0;
+        }
+        .card:active { cursor: grabbing; }
+        
+        /* 真實相片樣式 */
+        .card-img {
+            width: 156px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background-color: #f1f5f9;
+        }
+        .card-name { 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #1e293b; 
+            text-align: center;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 結束與開始畫面彈窗 */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal {
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.2);
+        }
+        .modal h2 { font-size: 26px; color: #1e3a8a; margin-bottom: 15px; line-height: 1.4; }
+        .modal p { font-size: 18px; margin-bottom: 15px; color: #475569; }
+        
+        /* 新增時間選擇器樣式 */
+        .time-selector-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .time-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .time-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 2px solid #cbd5e1;
+            padding: 10px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .time-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn:hover { background: #16a34a; }
+        .hide { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title">🏫 中華基督教會基真小學 - 科學攤位：動植物分類大挑戰</div>
+        <div class="stats">
+            <div class="stat-box" id="timer-box">倒數: <span id="timer">30</span>s</div>
+            <div class="stat-box" id="score-box">得分: <span id="score">0</span></div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="zone-column">
+            <div class="zone-title animal-title">🦁 動物類別</div>
+            <div class="basket" data-category="哺乳類">哺乳類</div>
+            <div class="basket" data-category="鳥類">鳥類</div>
+            <div class="basket" data-category="魚類">魚類</div>
+            <div class="basket" data-category="昆蟲類">昆蟲類</div>
+            <div class="basket" data-category="爬行類">爬行類</div>
+        </div>
+
+        <div class="center-area">
+            <div class="card-container">
+                <div class="card" id="game-card">
+                    <img class="card-img" id="item-img" src="" alt="生物相片">
+                    <div class="card-name" id="item-name">載入中...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="zone-column">
+            <div class="zone-title plant-title">🌿 植物類別</div>
+            <div class="basket" data-category="喬木">喬木</div>
+            <div class="basket" data-category="灌木">灌木</div>
+            <div class="basket" data-category="攀援植物">攀援植物</div>
+        </div>
+    </div>
+
+    <div class="overlay" id="start-overlay">
+        <div class="modal">
+            <h2>中華基督教會基真小學<br>動植物分類大挑戰</h2>
+            
+            <div class="time-selector-title">⏱️ 請選擇遊戲時間：</div>
+            <div class="time-selector">
+                <button class="time-btn active" data-time="30">30 秒</button>
+                <button class="time-btn" data-time="45">45 秒</button>
+                <button class="time-btn" data-time="60">60 秒</button>
+            </div>
+
+            <p>請用手指將中央的真實生物相片卡片，拖放到正確的分類空格中！</p>
+            <button class="btn" id="start-btn">開始挑戰</button>
+        </div>
+    </div>
+
+    <div class="overlay hide" id="end-overlay">
+        <div class="modal">
+            <h2>挑戰時間到！</h2>
+            <p>你的最終得分是：<span id="final-score" style="font-weight:bold; color:#10b981; font-size:36px;">0</span> 分</p>
+            <button class="btn" id="restart-btn">重新挑戰</button>
+        </div>
+    </div>
+
+    <script>
+        // 精確限定的 15 種動物及 6 種植物名單 (內置真實相片網址)
+        const gameItems = [
+            // ====== 動物選項 (15種) ======
+            { name: "人", img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=60", cat: "哺乳類" },
+            { name: "野豬", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9YMzW7izyufSvzGMQDxpE-VqCjjsAntWsBCxN5VAFZg&s=10?w=300&auto=format&fit=crop&q=60", cat: "哺乳類" },
+            { name: "蝙蝠", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjap7TRyUzkZfTzszEC97cjuK91chY8POj-UcBDyUxFQ&s=10?w=300&auto=format&fit=crop&q=60", cat: "哺乳類" },
+            { name: "小白鷺", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTf2uvy939fs3SFRLXjhqaoAzFcG_QuOJb7q6a270m2MQ&s=10?w=300&auto=format&fit=crop&q=60", cat: "鳥類" },
+            { name: "黑臉琵鷺", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6GwrX7GyNasNudf3LfVMKKCfBMQDlYgQV5P1T9Az5sw&s=10?w=300&auto=format&fit=crop&q=60", cat: "鳥類" },
+            { name: "赤頸鴨", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQPA8ZyhlRTs90sk8zn4Ly0KSm2wnJGkfFPKwYY1EjOMA&s=10?w=300&auto=format&fit=crop&q=60", cat: "鳥類" },
+            { name: "小丑魚", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ53776XMrUOb3A8nDfHimfTV2bjwtg6IQ2ImL-XX4fgg&s=10?w=300&auto=format&fit=crop&q=60", cat: "魚類" },
+            { name: "石狗公", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRXKEKweaCJ1wsaU42JrSETymga74VK_vntzjeDNX3wTA&s=10?w=300&auto=format&fit=crop&q=60", cat: "魚類" },
+            { name: "三文魚", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0vJVpzMtCngM7W4irZHnT6EOgZ856xJr4EXUFJH4-bQ&s=10?w=300&auto=format&fit=crop&q=60", cat: "魚類" },
+            { name: "蝴蝶", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSNf4c6MFmp6pe1-C3mROWVYmdaE_GQMtWoD9zZm6OQQ&s=10?w=300&auto=format&fit=crop&q=60", cat: "昆蟲類" },
+            { name: "蜜蜂", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSfJDSxyp-Fe5V4b7ZR_gmV2AVtzxO6irpCBeG_lFzNnA&s=10?w=300&auto=format&fit=crop&q=60", cat: "昆蟲類" },
+            { name: "蜻蜓", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQX487WeC7SRru86W25AUh4UMOJ6GuecwdSSzFg2ZCkKw&s=10?w=300&auto=format&fit=crop&q=60", cat: "昆蟲類" },
+            { name: "綠海龜", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTF41J-2Nr-Dk6d7VKl_en0IcobRdmLP08cJ4jpD1Fzkw&s=10?w=300&auto=format&fit=crop&q=60", cat: "爬行類" },
+            { name: "鱷魚", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSkkohCYfrvaeLn6Ce__zfaV47gTT8TC3JZKIjfpTlxFw&s=10?w=300&auto=format&fit=crop&q=60", cat: "爬行類" },
+            { name: "蛇", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRzWDC5IIgXqPL2iAVkQRN8ZePBjMQtEIYlraVIqhgcVA&s?w=300&auto=format&fit=crop&q=60", cat: "爬行類" },
+            
+            // ====== 植物選項 (6種) ======
+            { name: "洋紫荊", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSp71t97YeKSxId12uePHrduD3XZixEwnRkyKRwksscHQ&s=10?w=300&auto=format&fit=crop&q=60", cat: "喬木" },
+            { name: "木棉樹", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS54Y9MFsTmUoFcVl182lvyb-e2tK62E9efW4CrmWvvzw&s=10?w=300&auto=format&fit=crop&q=60", cat: "喬木" },
+            { name: "杜鵑", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgdaBEM4pQZNNXN_5L-bzbpKadypTdBVyyEgrVCdu1mQ&s=10?w=300&auto=format&fit=crop&q=60", cat: "灌木" },
+            { name: "大紅花", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ13pSOaNYq6R859ltBYvO-EOyFCR51CZIQp4iAOHxnWg&s=10?w=300&auto=format&fit=crop&q=60", cat: "灌木" },
+            { name: "五爪金龍", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbOpE4FXmhaojDdTC7tL-7UHVCDWpP-FcG2rTFcmQZFQ&s=10?w=300&auto=format&fit=crop&q=60", cat: "攀援植物" },
+            { name: "牽牛花", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQ_coSZBBHQ6unceeaNpw2yEpt1labiEk67DnIr9MOKw&s=10?w=300&auto=format&fit=crop&q=60", cat: "攀援植物" }
+        ];
+
+        let score = 0;
+        let selectedTime = 30; // 儲存玩家選擇的時間限制，預設為 30 秒
+        let timeLeft = 30; 
+        let timerInterval = null;
+        let currentItem = null;
+        let deck = [];
+
+        const card = document.getElementById('game-card');
+        const baskets = document.querySelectorAll('.basket');
+        const timeBtns = document.querySelectorAll('.time-btn');
+        
+        // 內置 Web Audio 音效產生器 (無需外置音頻檔案)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            if (type === 'correct') {
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+            }
+        }
+
+        // 時間按鈕選擇事件處理
+        timeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                timeBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                selectedTime = parseInt(e.target.getAttribute('data-time'));
+            });
+        });
+
+        // 初始化遊戲數據
+        function initGame() {
+            score = 0;
+            timeLeft = selectedTime; // 應用玩家所選擇的時間
+            document.getElementById('score').innerText = score;
+            document.getElementById('timer').innerText = timeLeft;
+            deck = [...gameItems].sort(() => Math.random() - 0.5);
+            nextCard();
+        }
+
+        function startGame() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            document.getElementById('start-overlay').classList.add('hide');
+            document.getElementById('end-overlay').classList.add('hide');
+            initGame();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('end-overlay').classList.remove('hide');
+        }
+
+        function nextCard() {
+            if (deck.length === 0) {
+                deck = [...gameItems].sort(() => Math.random() - 0.5);
+            }
+            currentItem = deck.pop();
+            
+            // 更換圖片與文字
+            document.getElementById('item-img').src = currentItem.img;
+            document.getElementById('item-name').innerText = currentItem.name;
+            
+            // 將卡片瞬間回彈至中央位置
+            card.style.transform = 'translate(0px, 0px)';
+            card.style.transition = 'none';
+        }
+
+        // iPad 觸控拖放核心邏輯 (Pointer Events)
+        let isDragging = false;
+        let startX, startY;
+        let currentX = 0, currentY = 0;
+
+        card.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            startX = e.clientX - currentX;
+            startY = e.clientY - currentY;
+            card.style.transition = 'none';
+            card.setPointerCapture(e.pointerId);
+        });
+
+        card.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            currentX = e.clientX - startX;
+            currentY = e.clientY - startY;
+            card.style.transform = `translate(${currentX}px, ${currentY}px)`;
+
+            // 實時偵測卡片正下方的元素是否為目標空格
+            card.style.pointerEvents = 'none'; 
+            let target = document.elementFromPoint(e.clientX, e.clientY);
+            card.style.pointerEvents = 'auto';
+
+            baskets.forEach(b => b.classList.remove('drag-over'));
+            if (target && target.classList.contains('basket')) {
+                target.classList.add('drag-over');
+            }
+        });
+
+        card.addEventListener('pointerup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            card.releasePointerCapture(e.pointerId);
+
+            card.style.pointerEvents = 'none';
+            let target = document.elementFromPoint(e.clientX, e.clientY);
+            card.style.pointerEvents = 'auto';
+
+            baskets.forEach(b => b.classList.remove('drag-over'));
+
+            if (target && target.classList.contains('basket')) {
+                let selectedCategory = target.getAttribute('data-category');
+                if (selectedCategory === currentItem.cat) {
+                    // 答對加 10 分
+                    score += 10;
+                    document.getElementById('score').innerText = score;
+                    playSound('correct');
+                    target.style.background = '#bbf7d0'; // 綠色閃爍
+                    setTimeout(() => target.style.background = '', 250);
+                } else {
+                    // 答錯扣 5 分
+                    score = Math.max(0, score - 5);
+                    document.getElementById('score').innerText = score;
+                    playSound('wrong');
+                    target.style.background = '#fecaca'; // 紅色閃爍
+                    setTimeout(() => target.style.background = '', 250);
+                }
+                currentX = 0; currentY = 0;
+                nextCard();
+            } else {
+                // 放手時若沒對準空格，平滑回彈到中央
+                card.style.transition = 'transform 0.25s ease';
+                currentX = 0; currentY = 0;
+                card.style.transform = 'translate(0px, 0px)';
+            }
+        });
+
+        // 按鈕事件綁定
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        
+        // 點擊「重新挑戰」時，返回含有時間選擇器的初始畫面
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('end-overlay').classList.add('hide');
+            document.getElementById('start-overlay').classList.remove('hide');
+        });
+    </script>
+</body>
+</html>
