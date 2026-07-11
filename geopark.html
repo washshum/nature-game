@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>中華基督教會基真小學 - 橋咀洲地質配對大挑戰</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #fef3c7, #f1f5f9); /* 大地岩石色系漸變 */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+        /* 頂部資訊列 */
+        .header {
+            width: 100%;
+            max-width: 1024px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 24px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #78350f;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .stat-box {
+            padding: 5px 15px;
+            border-radius: 8px;
+            color: white;
+        }
+        #timer-box { background-color: #ef4444; } 
+        #score-box { background-color: #d97706; } /* 地質主題改用琥珀/岩石色 */
+
+        /* 遊戲主容器 */
+        .game-container {
+            width: 100%;
+            max-width: 1024px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            flex: 1;
+        }
+
+        /* 上半部：正確名稱方格區 (5個目標位置) */
+        .slots-grid {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            width: 100%;
+        }
+        .target-slot {
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 14px;
+            width: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+        }
+        .slot-name {
+            background-color: #78350f;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+            white-space: nowrap;
+        }
+        /* 接收相片的空格 */
+        .drop-zone {
+            width: 156px;
+            height: 120px;
+            border: 3px dashed #cbd5e1;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8fafc;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .drop-zone.drag-over {
+            background: #fef08a;
+            border-color: #eab308;
+            transform: scale(1.05);
+        }
+
+        /* 區隔線 */
+        .divider {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #4b5563;
+            border-bottom: 2px dashed #cbd5e1;
+            line-height: 0.1em;
+            margin: 10px 0;
+        }
+        .divider span {
+            background: #fdf8e6;
+            padding: 0 15px;
+        }
+
+        /* 下半部：真實圖片卡片集庫 (拖放源頭) */
+        .pool-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            min-height: 160px;
+            align-items: center;
+        }
+
+        /* 相片卡片樣式 */
+        .card {
+            width: 156px;
+            height: 120px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            cursor: grab;
+            touch-action: none;
+            border: 2px solid #e2e8f0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .card:active { cursor: grabbing; }
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none; /* 防止拖曳時誤選中圖片 */
+        }
+        /* 已成功配對的卡片狀態 */
+        .card.matched {
+            cursor: default;
+            box-shadow: none;
+            border: none;
+        }
+
+        /* 彈窗樣式 */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal {
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.2);
+        }
+        .modal h2 { font-size: 26px; color: #78350f; margin-bottom: 15px; line-height: 1.4; }
+        .modal p { font-size: 18px; margin-bottom: 15px; color: #475569; }
+        
+        .time-selector-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #78350f;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        .time-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .time-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 2px solid #cbd5e1;
+            padding: 10px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .time-btn.active {
+            background: #d97706;
+            color: white;
+            border-color: #d97706;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.2);
+        }
+        .btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn:hover { background: #16a34a; }
+        .hide { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部資訊列 -->
+    <div class="header">
+        <div class="title">🏫 中華基督教會基真小學 - 橋咀洲地質配對大挑戰</div>
+        <div class="stats">
+            <div class="stat-box" id="timer-box">倒數: <span id="timer">30</span>s</div>
+            <div class="stat-box" id="score-box">得分: <span id="score">0</span></div>
+        </div>
+    </div>
+
+    <!-- 遊戲主區域 -->
+    <div class="game-container">
+        
+        <!-- 上方：正確名稱下方的方格 -->
+        <div class="slots-grid" id="slots-grid">
+            <!-- 5個配對目標 -->
+            <div class="target-slot">
+                <div class="slot-name">菠蘿包石</div>
+                <div class="drop-zone" data-name="菠蘿包石"></div>
+            </div>
+            <div class="target-slot">
+                <div class="slot-name">流紋岩</div>
+                <div class="drop-zone" data-name="流紋岩"></div>
+            </div>
+            <div class="target-slot">
+                <div class="slot-name">火山角礫岩</div>
+                <div class="drop-zone" data-name="火山角礫岩"></div>
+            </div>
+            <div class="target-slot">
+                <div class="slot-name">連島沙洲</div>
+                <div class="drop-zone" data-name="連島沙洲"></div>
+            </div>
+            <div class="target-slot">
+                <div class="slot-name">六角形岩柱</div>
+                <div class="drop-zone" data-name="六角形岩柱"></div>
+            </div>
+        </div>
+
+        <!-- 中間裝飾分隔線 -->
+        <div class="divider"><span>👇 請把以下珍貴相片拖放到上方正確名稱的方格內 👇</span></div>
+
+        <!-- 下方：隨機相片集庫 -->
+        <div class="pool-container" id="pool-container">
+            <!-- 卡片會在遊戲開始時經 JavaScript 隨機洗牌並產生於此 -->
+        </div>
+    </div>
+
+    <!-- 開始彈窗 (自選時間) -->
+    <div class="overlay" id="start-overlay">
+        <div class="modal">
+            <h2>香港世界地質公園<br>橋咀洲地質配對大挑戰</h2>
+            
+            <div class="time-selector-title">⏱️ 請選擇遊戲時間：</div>
+            <div class="time-selector">
+                <button class="time-btn active" data-time="30">30 秒</button>
+                <button class="time-btn" data-time="45">45 秒</button>
+                <button class="time-btn" data-time="60">60 秒</button>
+            </div>
+
+            <p>請用手指將下方的地質真實相片，逐一拖放到上方正確名稱下邊的方格內！</p>
+            <button class="btn" id="start-btn">開始挑戰</button>
+        </div>
+    </div>
+
+    <!-- 結束與結算彈窗 -->
+    <div class="overlay hide" id="end-overlay">
+        <div class="modal">
+            <h2 id="end-title">挑戰結束！</h2>
+            <p id="end-message">你的最終得分是：</p>
+            <p><span id="final-score" style="font-weight:bold; color:#d97706; font-size:36px;">0</span> 分</p>
+            <button class="btn" id="restart-btn">重新挑戰</button>
+        </div>
+    </div>
+
+    <script>
+        // 橋咀洲 5 個地質項目名單 (搭配高畫質地質與自然景象代表圖)
+        const geoItems = [
+            { name: "菠蘿包石", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTlK-ysr0MpQsPZlxA3UPatnWRRB4Q1KuAWeHahb17ywA&s=10?w=400&auto=format&fit=crop&q=80" },
+            { name: "流紋岩", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAY_3fSzzHWtwrBa59Fosls3X5RqHSl_bl9KutzHf3BA&s?w=400&auto=format&fit=crop&q=80" },
+            { name: "火山角礫岩", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMqJm6qRGCCuN8HR3iHw8peI9bwJ4is_iPsDXUS6X9nQ&s=10?w=400&auto=format&fit=crop&q=80" },
+            { name: "連島沙洲", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtab_0j2_7nHYuTckksPRVdnqfpXCzM8Qbe7e4_s5Gdw&s=10?w=400&auto=format&fit=crop&q=80" },
+            { name: "六角形岩柱", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhCDI2MoYrdwwPExbvlDwSC2jFqP5BYVmsW4hiB0awvQ&s=10?w=400&auto=format&fit=crop&q=80" }
+        ];
+
+        let score = 0;
+        let selectedTime = 30;
+        let timeLeft = 30;
+        let timerInterval = null;
+        let activeCard = null;
+
+        const timeBtns = document.querySelectorAll('.time-btn');
+        const poolContainer = document.getElementById('pool-container');
+        const dropZones = document.querySelectorAll('.drop-zone');
+
+        // 內置免外置檔案音效產生器
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            if (type === 'correct') {
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+            }
+        }
+
+        // 時間按鈕點擊切換
+        timeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                timeBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                selectedTime = parseInt(e.target.getAttribute('data-time'));
+            });
+        });
+
+        // 初始化與重置遊戲
+        function initGame() {
+            score = 0;
+            timeLeft = selectedTime;
+            document.getElementById('score').innerText = score;
+            document.getElementById('timer').innerText = timeLeft;
+
+            // 1. 清空所有方格原本配對好的卡片
+            dropZones.forEach(zone => {
+                zone.innerHTML = '';
+                zone.style.background = '';
+            });
+
+            // 2. 打亂相片卡片的出現順序 (洗牌)
+            const shuffledItems = [...geoItems].sort(() => Math.random() - 0.5);
+
+            // 3. 重新在集庫中渲染卡片
+            poolContainer.innerHTML = '';
+            shuffledItems.forEach(item => {
+                const cardEl = document.createElement('div');
+                cardEl.classList.add('card');
+                cardEl.setAttribute('data-name', item.name);
+
+                const imgEl = document.createElement('img');
+                imgEl.classList.add('card-img');
+                imgEl.src = item.img;
+                imgEl.alt = item.name;
+
+                cardEl.appendChild(imgEl);
+                poolContainer.appendChild(cardEl);
+
+                // 綁定 iPad 觸控拖放核心技術 (Pointer Events)
+                setupDragAndDrop(cardEl);
+            });
+        }
+
+        // 啟動遊戲
+        function startGame() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            document.getElementById('start-overlay').classList.add('hide');
+            document.getElementById('end-overlay').classList.add('hide');
+            initGame();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame(false); // 時間到，未能全部配對完成
+                }
+            }, 1000);
+        }
+
+        // 結束遊戲
+        function endGame(isVictory) {
+            clearInterval(timerInterval);
+            document.getElementById('final-score').innerText = score;
+            
+            const titleEl = document.getElementById('end-title');
+            const msgEl = document.getElementById('end-message');
+            
+            if (isVictory) {
+                titleEl.innerText = "🎉 恭喜完成全數配對！";
+                msgEl.innerText = "速度驚人！你的最終得分是：";
+            } else {
+                titleEl.innerText = "⏱️ 挑戰時間到！";
+                msgEl.innerText = "再接再厲！你的最終得分是：";
+            }
+            
+            document.getElementById('end-overlay').classList.remove('hide');
+        }
+
+        // 檢查是否所有 5 個格子都已成功配對
+        function checkWinCondition() {
+            const matchedCards = document.querySelectorAll('.card.matched');
+            if (matchedCards.length === 5) {
+                // 如果在時限內全部配對成功，獲得剩餘時間作為額外加分
+                score += timeLeft * 2;
+                document.getElementById('score').innerText = score;
+                setTimeout(() => endGame(true), 500);
+            }
+        }
+
+        // iPad 高靈敏度 Pointer Events 拖放控制核心
+        function setupDragAndDrop(card) {
+            let startX = 0, startY = 0;
+            let currentX = 0, currentY = 0;
+
+            card.addEventListener('pointerdown', (e) => {
+                if (card.classList.contains('matched')) return;
+                activeCard = card;
+                card.style.zIndex = 1000;
+                card.style.transition = 'none';
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                currentX = 0;
+                currentY = 0;
+                card.setPointerCapture(e.pointerId);
+            });
+
+            card.addEventListener('pointermove', (e) => {
+                if (activeCard !== card) return;
+                currentX = e.clientX - startX;
+                currentY = e.clientY - startY;
+                card.style.transform = `translate(${currentX}px, ${currentY}px)`;
+
+                // 穿透實時偵測卡片正下方的元素是否為目標空格
+                card.style.pointerEvents = 'none';
+                let target = document.elementFromPoint(e.clientX, e.clientY);
+                card.style.pointerEvents = 'auto';
+
+                dropZones.forEach(z => z.classList.remove('drag-over'));
+                if (target) {
+                    let zone = target.classList.contains('drop-zone') ? target : target.closest('.drop-zone');
+                    if (zone && !zone.hasChildNodes()) {
+                        zone.classList.add('drag-over');
+                    }
+                }
+            });
+
+            card.addEventListener('pointerup', (e) => {
+                if (activeCard !== card) return;
+                activeCard = null;
+                card.releasePointerCapture(e.pointerId);
+
+                card.style.pointerEvents = 'none';
+                let target = document.elementFromPoint(e.clientX, e.clientY);
+                card.style.pointerEvents = 'auto';
+
+                dropZones.forEach(z => z.classList.remove('drag-over'));
+
+                let dropZone = null;
+                if (target) {
+                    dropZone = target.classList.contains('drop-zone') ? target : target.closest('.drop-zone');
+                }
+
+                // 條件：必須落於空格內，且該空格目前沒有放置卡片
+                if (dropZone && !dropZone.hasChildNodes()) {
+                    let slotName = dropZone.getAttribute('data-name');
+                    let cardName = card.getAttribute('data-name');
+
+                    if (slotName === cardName) {
+                        // 答對了：加 20 分
+                        score += 20;
+                        document.getElementById('score').innerText = score;
+                        playSound('correct');
+                        
+                        // 鎖定卡片與外觀
+                        card.classList.add('matched');
+                        card.style.transform = 'none';
+                        dropZone.appendChild(card);
+                        
+                        dropZone.style.background = '#bbf7d0'; // 綠色閃爍
+                        setTimeout(() => dropZone.style.background = '', 250);
+
+                        // 檢查是否全對
+                        checkWinCondition();
+                    } else {
+                        // 答錯了：扣 5 分
+                        score = Math.max(0, score - 5);
+                        document.getElementById('score').innerText = score;
+                        playSound('wrong');
+                        
+                        dropZone.style.background = '#fecaca'; // 紅色閃爍
+                        setTimeout(() => dropZone.style.background = '', 250);
+
+                        // 平滑回彈至集庫原位
+                        card.style.transition = 'transform 0.25s ease';
+                        card.style.transform = 'translate(0px, 0px)';
+                    }
+                } else {
+                    // 沒對準或扔到已滿的格子，直接平滑回彈
+                    card.style.transition = 'transform 0.25s ease';
+                    card.style.transform = 'translate(0px, 0px)';
+                }
+            });
+        }
+
+        // 按鈕點擊綁定
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('end-overlay').classList.add('hide');
+            document.getElementById('start-overlay').classList.remove('hide');
+        });
+    </script>
+</body>
+</html>
